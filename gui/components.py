@@ -257,7 +257,7 @@ class InputFolder:
                     tag="files_checkbox_group"
                 )
             dpg.add_checkbox(
-                label="Preview Update",
+                label="Preview Changes",
                 id="preview_checkbox",
                 callback=self.refresh_callback
             )

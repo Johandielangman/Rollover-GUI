@@ -7,10 +7,10 @@ LOG_DIRECTORY: str = os.path.join(tempfile.gettempdir(), APP_NAME, "logs")
 os.makedirs(LOG_DIRECTORY, exist_ok=True)
 
 
-DEFAULT_VIEWPORT_HEIGHT: int = 760
+DEFAULT_VIEWPORT_HEIGHT: int = 785
 DEFAULT_VIEWPORT_WIDTH: int = 1000
 
-BOX_WIDTH: int = 400
+BOX_WIDTH: int = 450
 BOX_HEIGHT: int = 300
 MIN_WINDOW_WIDTH: int = BOX_WIDTH * 2 + 100
 SPACER_HEIGHT: int = 8

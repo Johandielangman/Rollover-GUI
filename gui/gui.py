@@ -135,6 +135,7 @@ class GUI(GUIFonts, GUIUtils):
             self.bind_default_font()
 
             self.h1(c.APP_NAME, color=s.Colors.nice_red)
+            dpg.add_text("Your one stop shop to rename a bunch of files in bulk!")
 
             self.add_fancy_separator()
 
@@ -157,7 +158,7 @@ class GUI(GUIFonts, GUIUtils):
                 self.input_folder.layout()
 
                 with dpg.group(width=50):
-                    dpg.add_spacer(height=150)
+                    dpg.add_spacer(height=175)
                     dpg.add_text("  >>>  ")
 
                 self.output_folder.layout()
@@ -166,7 +167,7 @@ class GUI(GUIFonts, GUIUtils):
 
             # Right-aligned buttons
             with dpg.group(horizontal=True):
-                left_margin = c.BOX_WIDTH - 85
+                left_margin = c.BOX_WIDTH - 80
                 dpg.add_spacer(width=left_margin)
                 dpg.add_button(
                     label="Reset",
