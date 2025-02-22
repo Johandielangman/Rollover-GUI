@@ -44,9 +44,15 @@ class Rename:
         return path.stem + suffix + path.suffix
 
     def loop(self) -> None:
+        self.registry.rename_mapping = {}
         output_root_path = pathlib.Path(self.registry.output_folder_root)
         for file in [k for k, v in self.registry.selected_files.items() if v]:
             proposed_name: str = file
+            if (
+                not self.registry.use_year and
+                not self.registry.use_suffix
+            ):
+                continue
             if self.registry.use_year:
                 proposed_name: str = self.rename_year(file)
             if self.registry.use_suffix:

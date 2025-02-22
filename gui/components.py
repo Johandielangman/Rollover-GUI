@@ -140,6 +140,7 @@ class InputFolder:
 
     def on_file_selected(self, sender, app_data, user_data):
         self.registry.selected_files[user_data] = app_data
+        self.refresh()
         logger.debug(f"File selection changed: {user_data} -> {app_data}")
 
     def refresh(self) -> None:
