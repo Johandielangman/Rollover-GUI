@@ -21,8 +21,12 @@ class Registry:
 @dataclass
 class Colors:
     red: tuple = (255, 0, 0)
+    nice_red: tuple = (233, 79, 100)
     yellow: tuple = (255, 255, 0)
     white: tuple = (255, 255, 255)
     teal: tuple = (0, 255, 255)
     blue: tuple = (30, 144, 255)
+    nice_blue: tuple = (70, 188, 222)
     green: tuple = (0, 255, 0)
+    corn_blue: tuple = (100, 149, 237)
+    grey: tuple = (128, 128, 128)

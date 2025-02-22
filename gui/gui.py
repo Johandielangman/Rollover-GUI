@@ -49,6 +49,27 @@ class GUI:
         if dpg.does_item_exist("rename_button"):
             dpg.configure_item("rename_button", label="Rename", enabled=True)
 
+        if dpg.does_item_exist("feedback_text"):
+            dpg.set_value("feedback_text", "")
+
+        if (
+            dpg.does_item_exist("input_folder_root_preview")
+        ):
+            dpg.configure_item(
+                "input_folder_root_preview",
+                default_value=">",
+                color=s.Colors.corn_blue
+            )
+
+        if (
+            dpg.does_item_exist("output_folder_root_preview")
+        ):
+            dpg.configure_item(
+                "output_folder_root_preview",
+                default_value=">",
+                color=s.Colors.corn_blue
+            )
+
         if dpg.does_item_exist("year_input"):
             dpg.set_value("year_input", str(utils.get_current_year()))
         if dpg.does_item_exist("suffix_input"):
@@ -100,7 +121,8 @@ class GUI:
                 height=c.BOX_HEIGHT,
                 width=c.BOX_WIDTH,
                 tag="files_checkbox_group",
-                parent="from_group"
+                parent="from_group",
+                horizontal_scrollbar=True
             ):
                 if self.registry.input_folder_root is not None:
                     input_path = pathlib.Path(self.registry.input_folder_root)
@@ -115,24 +137,30 @@ class GUI:
                     )
 
                     for file in files:
-                        file_name = file.name
                         is_excel = file.suffix.lower() == '.xlsx'
 
-                        if file_name not in self.registry.selected_files:
-                            self.registry.selected_files[file_name] = is_excel
+                        if file.name not in self.registry.selected_files:
+                            self.registry.selected_files[file.name] = is_excel
 
-                        display_name = file_name
-                        if preview_enabled:
-                            name, ext = os.path.splitext(file_name)
-                            display_name = f"{file_name}\n>>> {name}s{ext}"
+                        preview_name = ""
+                        if (
+                            preview_enabled and
+                            self.registry.selected_files[file.name]
+                        ):
+                            name, ext = os.path.splitext(file.name)
+                            preview_name = f">> {name}s{ext}"
 
-                        dpg.add_checkbox(
-                            label=display_name,
-                            default_value=self.registry.selected_files[file_name],
-                            callback=self.on_file_selected,
-                            user_data=file_name,
-                            indent=10
-                        )
+                        with dpg.group(horizontal=True):
+                            dpg.add_checkbox(
+                                label=file.name,
+                                default_value=self.registry.selected_files[file.name],
+                                callback=self.on_file_selected,
+                                user_data=file.name,
+                            )
+                            dpg.add_text(
+                                default_value=preview_name,
+                                color=s.Colors.yellow,
+                            )
 
             if dpg.does_item_exist("to_listbox"):
                 items = []
@@ -141,16 +169,24 @@ class GUI:
                     items = [item.name for item in output_path.iterdir() if item.is_file()]
                 dpg.configure_item("to_listbox", items=items if items else [])
 
-            if dpg.does_item_exist("input_folder_root_preview"):
+            if (
+                dpg.does_item_exist("input_folder_root_preview") and
+                self.registry.input_folder_root is not None
+            ):
                 dpg.configure_item(
                     "input_folder_root_preview",
-                    default_value=self.registry.input_folder_root or ""
+                    default_value=utils.format_path_display(self.registry.input_folder_root),
+                    color=s.Colors.grey
                 )
 
-            if dpg.does_item_exist("output_folder_root_preview"):
+            if (
+                dpg.does_item_exist("output_folder_root_preview") and
+                self.registry.output_folder_root is not None
+            ):
                 dpg.configure_item(
                     "output_folder_root_preview",
-                    default_value=self.registry.output_folder_root or ""
+                    default_value=utils.format_path_display(self.registry.output_folder_root),
+                    color=s.Colors.grey
                 )
 
             self.print_registry()
@@ -204,6 +240,27 @@ class GUI:
             dpg.configure_item("rename_button", label="Success!", enabled=False)
         self.refresh()
 
+    def add_space(self):
+        dpg.add_spacer(height=c.SPACER_HEIGHT)
+
+    def h1(self, text: str, **kwargs):
+        dpg.bind_item_font(
+            dpg.add_text(
+                text,
+                **kwargs
+            ),
+            self.h1_font
+        )
+
+    def h2(self, text: str, **kwargs):
+        dpg.bind_item_font(
+            dpg.add_text(
+                text,
+                **kwargs
+            ),
+            self.h2_font
+        )
+
     def __layout(self) -> None:
         with dpg.window(
             label=c.APP_NAME,
@@ -213,7 +270,17 @@ class GUI:
             if self.default_font:
                 dpg.bind_font(self.default_font)
 
-            dpg.add_text(c.APP_NAME)
+            self.h1(c.APP_NAME, color=s.Colors.nice_red)
+
+            self.add_space()
+            dpg.add_separator()
+            self.add_space()
+
+            self.h2(
+                "Choose how to rename the files",
+                color=s.Colors.nice_blue
+            )
+            self.add_space()
 
             with dpg.group(horizontal=True):
                 dpg.add_checkbox(
@@ -240,6 +307,16 @@ class GUI:
                     width=c.BOX_WIDTH * 0.5
                 )
 
+            self.add_space()
+            dpg.add_separator()
+            self.add_space()
+
+            self.h2(
+                "Choose where to rename the files and where to save",
+                color=s.Colors.nice_blue
+            )
+            self.add_space()
+
             with dpg.group(horizontal=True):
                 # Left group (From)
                 with dpg.group(width=c.BOX_WIDTH, tag="from_group"):
@@ -252,9 +329,10 @@ class GUI:
                         callback=self.refresh
                     )
                     dpg.add_text(
-                        self.registry.input_folder_root or "",
+                        ">",
                         tag="input_folder_root_preview",
-                        wrap=c.BOX_WIDTH
+                        wrap=c.BOX_WIDTH,
+                        color=s.Colors.corn_blue
                     )
                     dpg.add_child_window(
                         height=c.BOX_HEIGHT,
@@ -276,9 +354,10 @@ class GUI:
                         callback=self.refresh
                     )
                     dpg.add_text(
-                        self.registry.output_folder_root or "",
+                        ">",
                         tag="output_folder_root_preview",
-                        wrap=c.BOX_WIDTH
+                        wrap=c.BOX_WIDTH,
+                        color=s.Colors.corn_blue
                     )
                     dpg.add_listbox(
                         [],
@@ -338,6 +417,8 @@ class GUI:
         with dpg.font_registry():
             try:
                 self.default_font: Union[int, str] = dpg.add_font(arial_path, size=18)
+                self.h1_font: Union[int, str] = dpg.add_font(arial_path, size=24)
+                self.h2_font: Union[int, str] = dpg.add_font(arial_path, size=20)
             except Exception:
                 logger.warning(f"Failed to load Arial font from {arial_path}. Using default font.")
                 self.default_font: Union[int, str] = None
