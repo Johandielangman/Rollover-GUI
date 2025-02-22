@@ -106,7 +106,8 @@ class FileSettingsInput:
                 utils.get_year_range(),
                 default_value=str(utils.get_current_year()),
                 width=80,
-                tag="year_input"
+                tag="year_input",
+                callback=self.refresh_callback
             )
         with dpg.group(horizontal=True):
             dpg.add_checkbox(
@@ -117,7 +118,8 @@ class FileSettingsInput:
             dpg.add_text("Suffix to add on the file")
             dpg.add_input_text(
                 tag="suffix_input",
-                width=c.BOX_WIDTH * 0.5
+                width=c.BOX_WIDTH * 0.5,
+                callback=self.refresh_callback
             )
 
 
@@ -129,6 +131,7 @@ class InputFolder:
     ) -> None:
         self.refresh_callback: Callable = refresh_callback
         self.registry: 'Registry' = registry
+        self.feedback: Feedback = Feedback()
 
     @property
     def preview_enabled(self) -> bool:
@@ -165,17 +168,39 @@ class InputFolder:
 
                 for file in files:
                     is_excel = file.suffix.lower() == '.xlsx'
-
                     if file.name not in self.registry.selected_files:
                         self.registry.selected_files[file.name] = is_excel
 
+                warning_msg = "You need to select an output and input folder to enable the preview"
+                if self.preview_enabled:
+                    if (
+                        self.registry.input_folder_root is not None and
+                        self.registry.output_folder_root is not None
+                    ):
+                        if self.feedback.current_feedback == warning_msg:
+                            self.feedback.reset()
+                        utils.Rename(
+                            registry=self.registry
+                        )
+                    else:
+                        self.feedback.warning(warning_msg)
+                elif (
+                    not self.preview_enabled and
+                    self.feedback.current_feedback == warning_msg
+                ):
+                    self.feedback.reset()
+
+                logger.debug(f"{self.registry.rename_mapping=}")
+
+                for file in files:
                     preview_name = ""
                     if (
                         self.preview_enabled and
-                        self.registry.selected_files[file.name]
+                        self.registry.selected_files[file.name] and
+                        file.name in self.registry.rename_mapping and
+                        self.registry.rename_mapping
                     ):
-                        name, ext = os.path.splitext(file.name)
-                        preview_name = f">> {name}s{ext}"
+                        preview_name = f">> {self.registry.rename_mapping[file.name]}"
 
                     with dpg.group(horizontal=True):
                         dpg.add_checkbox(

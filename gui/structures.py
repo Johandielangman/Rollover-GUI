@@ -25,6 +25,7 @@ class Registry:
     input_folder_root: Optional[str] = None
     output_folder_root: Optional[str] = None
     selected_files: Dict[str, str] = field(default_factory=dict)
+    rename_mapping: Dict[str, str] = field(default_factory=dict)
 
     use_year: bool = False
     use_suffix: bool = False

@@ -45,6 +45,7 @@ class GUI(GUIFonts, GUIUtils):
         self.registry.input_folder_root = None
         self.registry.output_folder_root = None
         self.registry.selected_files = {}
+        self.registry.rename_mapping = {}
 
     def reset(self):
         logger.debug("Resetting...")
@@ -108,8 +109,12 @@ class GUI(GUIFonts, GUIUtils):
             return
 
         self.print_registry()
+        utils.Rename(
+            registry=self.registry
+        )
+        utils.apply_rename_to_registry(self.registry)
 
-        self.feedback.success(f"Successfully prepared {len(selected_files)} files for renaming")
+        self.feedback.success(f"Successfully renamed {len(self.registry.rename_mapping)}")
 
         self.registry.input_folder_root = None
         self.registry.selected_files = {}

@@ -5,3 +5,7 @@ from utils.general import (
     format_path_display
 )
 from utils.fonts import get_font_path
+from utils.rename import (
+    Rename,
+    apply_rename_to_registry
+)
