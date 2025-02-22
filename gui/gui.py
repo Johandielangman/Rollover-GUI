@@ -13,6 +13,7 @@ from typing import (
 import dearpygui.dearpygui as dpg
 from loguru import logger
 
+from gui.font import Font
 import gui.structures as s
 import gui.components as comp
 import constants as c
@@ -21,7 +22,7 @@ import utils
 logger.add(**utils.log_args("gui_app"))
 
 
-class GUI:
+class GUI(Font):
     def __init__(self):
         logger.debug("Starting a new GUI...")
         dpg.create_context()
@@ -29,10 +30,10 @@ class GUI:
         self.registry: s.Registry = s.Registry()
         self._is_refreshing = False
 
-        self.__font_setup()
-        self.__layout()
+        self.font_setup()
+        self.layout()
         self.reset()
-        self.__run()
+        self.run()
 
     def reset(self):
         logger.debug("Resetting...")
@@ -243,32 +244,13 @@ class GUI:
     def add_space(self):
         dpg.add_spacer(height=c.SPACER_HEIGHT)
 
-    def h1(self, text: str, **kwargs):
-        dpg.bind_item_font(
-            dpg.add_text(
-                text,
-                **kwargs
-            ),
-            self.h1_font
-        )
-
-    def h2(self, text: str, **kwargs):
-        dpg.bind_item_font(
-            dpg.add_text(
-                text,
-                **kwargs
-            ),
-            self.h2_font
-        )
-
-    def __layout(self) -> None:
+    def layout(self) -> None:
         with dpg.window(
             label=c.APP_NAME,
             tag="main_window",
             min_size=[c.MIN_WINDOW_WIDTH, 400]
         ):
-            if self.default_font:
-                dpg.bind_font(self.default_font)
+            self.bind_default_font()
 
             self.h1(c.APP_NAME, color=s.Colors.nice_red)
 
@@ -318,11 +300,9 @@ class GUI:
             self.add_space()
 
             with dpg.group(horizontal=True):
-                # Left group (From)
                 with dpg.group(width=c.BOX_WIDTH, tag="from_group"):
                     dpg.add_text("Input Location")
                     comp.FileDialog(
-                        dpg=dpg,
                         tag="input_folder_root",
                         label="",
                         registry=self.registry,
@@ -347,7 +327,6 @@ class GUI:
                 with dpg.group(width=c.BOX_WIDTH):
                     dpg.add_text("Output Location")
                     comp.FileDialog(
-                        dpg=dpg,
                         tag="output_folder_root",
                         label="",
                         registry=self.registry,
@@ -401,7 +380,7 @@ class GUI:
             height=c.DEFAULT_VIEWPORT_HEIGHT
         )
 
-    def __run(self):
+    def run(self):
         logger.debug("Kick starting GUI!")
         dpg.setup_dearpygui()
         dpg.show_viewport()
@@ -410,16 +389,3 @@ class GUI:
         dpg.set_primary_window("main_window", True)
         dpg.start_dearpygui()
         dpg.destroy_context()
-
-    def __font_setup(self) -> None:
-        logger.debug("Setting up font")
-        arial_path: str = utils.get_font_path("arial")
-        with dpg.font_registry():
-            try:
-                self.default_font: Union[int, str] = dpg.add_font(arial_path, size=18)
-                self.h1_font: Union[int, str] = dpg.add_font(arial_path, size=24)
-                self.h2_font: Union[int, str] = dpg.add_font(arial_path, size=20)
-            except Exception:
-                logger.warning(f"Failed to load Arial font from {arial_path}. Using default font.")
-                self.default_font: Union[int, str] = None
-        logger.debug(f"OS has {arial_path} installed")
