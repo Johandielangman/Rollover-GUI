@@ -1,9 +1,10 @@
 import os
 import pathlib
-from dataclasses import dataclass
+
 
 from typing import (
     Union,
+    Tuple,
     Optional,
     List,
     Callable,
@@ -12,6 +13,7 @@ from typing import (
 import dearpygui.dearpygui as dpg
 from loguru import logger
 
+import gui.structures as s
 import gui.components as comp
 import constants as c
 import utils
@@ -19,23 +21,12 @@ import utils
 logger.add(**utils.log_args("gui_app"))
 
 
-@dataclass
-class Registry:
-    input_folder_root: Optional[str] = None
-    output_folder_root: Optional[str] = None
-    selected_files: Dict[str, bool] = None
-
-    def __post_init__(self):
-        if self.selected_files is None:
-            self.selected_files = {}
-
-
 class GUI:
     def __init__(self):
         logger.debug("Starting a new GUI...")
         dpg.create_context()
 
-        self.registry: Registry = Registry()
+        self.registry: s.Registry = s.Registry()
         self._is_refreshing = False
 
         self.__font_setup()
@@ -44,14 +35,47 @@ class GUI:
         self.__run()
 
     def reset(self):
+        logger.debug("Resetting...")
         self.registry.input_folder_root = None
         self.registry.output_folder_root = None
         self.registry.selected_files = {}
         if dpg.does_item_exist("preview_checkbox"):
             dpg.set_value("preview_checkbox", False)
+        if dpg.does_item_exist("use_year_checkbox"):
+            dpg.set_value("use_year_checkbox", True)
+        if dpg.does_item_exist("use_suffix_checkbox"):
+            dpg.set_value("use_suffix_checkbox", False)
+
         if dpg.does_item_exist("rename_button"):
             dpg.configure_item("rename_button", label="Rename", enabled=True)
+
+        if dpg.does_item_exist("year_input"):
+            dpg.set_value("year_input", str(utils.get_current_year()))
+        if dpg.does_item_exist("suffix_input"):
+            dpg.set_value("suffix_input", "")
         self.refresh()
+
+    def get_checkbox_states(self) -> Tuple[bool, bool, bool]:
+        use_year_enabled = dpg.get_value("use_year_checkbox") if (
+            dpg.does_item_exist("use_year_checkbox")
+        ) else False
+        use_suffix_enabled = dpg.get_value("use_suffix_checkbox") if (
+            dpg.does_item_exist("use_suffix_checkbox")
+        ) else False
+        preview_enabled = dpg.get_value("preview_checkbox") if (
+            dpg.does_item_exist("preview_checkbox")
+        ) else False
+        return (
+            use_year_enabled,
+            use_suffix_enabled,
+            preview_enabled
+        )
+
+    def get_file_update_selections(self):
+        if dpg.does_item_exist("year_input"):
+            self.registry.selected_year = dpg.get_value("year_input")
+        if dpg.does_item_exist("suffix_input"):
+            self.registry.selected_suffix = dpg.get_value("suffix_input")
 
     def refresh(self):
         if self._is_refreshing:  # Prevent recursive calls
@@ -61,18 +85,34 @@ class GUI:
             self._is_refreshing = True
             logger.debug("Refreshing...")
 
-            preview_enabled = dpg.get_value("preview_checkbox") if dpg.does_item_exist("preview_checkbox") else False
+            (
+                self.registry.use_year,
+                self.registry.use_suffix,
+                preview_enabled
+            ) = self.get_checkbox_states()
+            self.get_file_update_selections()
 
             # Clear existing checkboxes
             if dpg.does_item_exist("files_checkbox_group"):
                 dpg.delete_item("files_checkbox_group")
 
-            with dpg.child_window(height=250, width=c.BOX_WIDTH, tag="files_checkbox_group", parent="from_group"):
+            with dpg.child_window(
+                height=c.BOX_HEIGHT,
+                width=c.BOX_WIDTH,
+                tag="files_checkbox_group",
+                parent="from_group"
+            ):
                 if self.registry.input_folder_root is not None:
                     input_path = pathlib.Path(self.registry.input_folder_root)
                     files = [item for item in input_path.iterdir() if item.is_file()]
 
-                    files.sort(key=lambda x: (0 if x.suffix.lower() == '.xlsx' else 1, x.name))
+                    files.sort(
+                        key=lambda x: (
+                            0 if
+                            x.suffix.lower() == '.xlsx'
+                            else 1, x.name
+                        )
+                    )
 
                     for file in files:
                         file_name = file.name
@@ -113,6 +153,8 @@ class GUI:
                     default_value=self.registry.output_folder_root or ""
                 )
 
+            self.print_registry()
+
         except Exception as e:
             logger.error(f"Error in refresh: {e}")
         finally:
@@ -122,13 +164,20 @@ class GUI:
         self.registry.selected_files[user_data] = app_data
         logger.debug(f"File selection changed: {user_data} -> {app_data}")
 
-    def on_preview_toggle(self, sender, app_data):
-        self.refresh()
+    def print_registry(self, level: str = "info"):
+        log_func = getattr(logger, level, logger.info)
+        log_func(f"Files selected for renaming: {self.registry.selected_files}")
+        log_func(f"Input folder: {self.registry.input_folder_root}")
+        log_func(f"Output folder: {self.registry.output_folder_root}")
+        log_func(f"Year Enabled: {self.registry.use_year}")
+        log_func(f"Suffix Enabled: {self.registry.use_suffix}")
+        log_func(f"Suffix Selected: {self.registry.selected_suffix}")
+        log_func(f"Year Selected: {self.registry.selected_year}")
 
     def on_rename_clicked(self):
         if dpg.does_item_exist("feedback_text"):
             dpg.set_value("feedback_text", "")
-            dpg.configure_item("feedback_text", color=(255, 0, 0))  # Reset to red for errors
+            dpg.configure_item("feedback_text", color=s.Colors.red)  # Reset to red for errors
 
         if not self.registry.input_folder_root:
             dpg.set_value("feedback_text", "Error: Input folder not selected")
@@ -143,12 +192,10 @@ class GUI:
             dpg.set_value("feedback_text", "Error: No files selected for renaming")
             return
 
-        logger.info(f"Files selected for renaming: {selected_files}")
-        logger.info(f"Input folder: {self.registry.input_folder_root}")
-        logger.info(f"Output folder: {self.registry.output_folder_root}")
+        self.print_registry()
 
         # Display success message in green
-        dpg.configure_item("feedback_text", color=(0, 255, 0))  # Green color for success
+        dpg.configure_item("feedback_text", color=s.Colors.green)  # Green color for success
         dpg.set_value("feedback_text", f"Successfully prepared {len(selected_files)} files for renaming")
 
         self.registry.input_folder_root = None
@@ -166,16 +213,37 @@ class GUI:
             if self.default_font:
                 dpg.bind_font(self.default_font)
 
-            dpg.add_text("Rollover")
+            dpg.add_text(c.APP_NAME)
 
             with dpg.group(horizontal=True):
-                dpg.add_text("Year")
-                dpg.add_combo(["2024", "2025", "2026"], default_value="2025", width=80)
+                dpg.add_checkbox(
+                    id="use_year_checkbox",
+                    callback=self.refresh,
+                    default_value=True
+                )
+                dpg.add_text("Year to replace with")
+                dpg.add_combo(
+                    utils.get_year_range(),
+                    default_value=str(utils.get_current_year()),
+                    width=80,
+                    tag="year_input"
+                )
+            with dpg.group(horizontal=True):
+                dpg.add_checkbox(
+                    id="use_suffix_checkbox",
+                    callback=self.refresh,
+                    default_value=False
+                )
+                dpg.add_text("Suffix to add on the file")
+                dpg.add_input_text(
+                    tag="suffix_input",
+                    width=c.BOX_WIDTH * 0.5
+                )
 
             with dpg.group(horizontal=True):
                 # Left group (From)
                 with dpg.group(width=c.BOX_WIDTH, tag="from_group"):
-                    dpg.add_text("From")
+                    dpg.add_text("Input Location")
                     comp.FileDialog(
                         dpg=dpg,
                         tag="input_folder_root",
@@ -188,18 +256,18 @@ class GUI:
                         tag="input_folder_root_preview",
                         wrap=c.BOX_WIDTH
                     )
-                    # Placeholder for checkboxes (will be populated in refresh)
-                    # The empty frame will be visible even when no files are selected
-                    dpg.add_child_window(height=250, width=c.BOX_WIDTH, tag="files_checkbox_group")
+                    dpg.add_child_window(
+                        height=c.BOX_HEIGHT,
+                        width=c.BOX_WIDTH,
+                        tag="files_checkbox_group"
+                    )
 
-                # Arrow
                 with dpg.group(width=50):
                     dpg.add_spacer(height=150)
                     dpg.add_text("  >>>  ")
 
-                # Right group (To)
                 with dpg.group(width=c.BOX_WIDTH):
-                    dpg.add_text("To")
+                    dpg.add_text("Output Location")
                     comp.FileDialog(
                         dpg=dpg,
                         tag="output_folder_root",
@@ -212,25 +280,24 @@ class GUI:
                         tag="output_folder_root_preview",
                         wrap=c.BOX_WIDTH
                     )
-                    # Keep the normal listbox for the output side
                     dpg.add_listbox(
                         [],
                         tag="to_listbox",
                         width=c.BOX_WIDTH,
-                        num_items=11
+                        num_items=c.BOX_HEIGHT // 22
                     )
 
             dpg.add_checkbox(
-                label="preview",
+                label="Preview Update",
                 id="preview_checkbox",
-                callback=self.on_preview_toggle
+                callback=self.refresh
             )
 
             dpg.add_text(
                 "",
                 tag="feedback_text",
-                color=(255, 0, 0),
-                wrap=780
+                color=s.Colors.red,
+                wrap=c.MIN_WINDOW_WIDTH
             )
 
             # Right-aligned buttons

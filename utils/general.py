@@ -17,3 +17,11 @@ def log_args(name: str) -> Dict:
         "rotation": "1 day",
         "level": "INFO"
     }
+
+
+def get_current_year() -> int:
+    return datetime.date.today().year
+
+
+def get_year_range() -> list:
+    return [get_current_year() - 5 + i for i in range(10)]
