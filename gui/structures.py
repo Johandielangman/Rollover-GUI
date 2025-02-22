@@ -3,13 +3,26 @@ from typing import (
     Dict
 )
 from pydantic import BaseModel
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
-class Registry(BaseModel):
+# class Registry(BaseModel):
+#     input_folder_root: Optional[str] = None
+#     output_folder_root: Optional[str] = None
+#     selected_files: Dict[str, str] = {}
+
+#     use_year: bool = False
+#     use_suffix: bool = False
+
+#     selected_year: str = ""
+#     selected_suffix: str = ""
+
+
+@dataclass
+class Registry:
     input_folder_root: Optional[str] = None
     output_folder_root: Optional[str] = None
-    selected_files: Dict[str, str] = {}
+    selected_files: Dict[str, str] = field(default_factory=dict)
 
     use_year: bool = False
     use_suffix: bool = False

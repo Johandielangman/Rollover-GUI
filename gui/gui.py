@@ -38,10 +38,19 @@ class GUI(GUIFonts, GUIUtils):
         self.run()
 
     def __init_components(self) -> None:
-        self.file_settings_input = comp.FileSettingsInput(
+        self.file_settings_input: comp.FileSettingsInput = comp.FileSettingsInput(
             refresh_callback=self.refresh,
             registry=self.registry
         )
+        self.input_folder: comp.InputFolder = comp.InputFolder(
+            refresh_callback=self.refresh,
+            registry=self.registry
+        )
+        self.output_folder: comp.OutputFolder = comp.OutputFolder(
+            refresh_callback=self.refresh,
+            registry=self.registry
+        )
+        self.feedback: comp.Feedback = comp.Feedback()
         self.font_setup()
 
     def _reset_registry(self) -> None:
@@ -54,15 +63,13 @@ class GUI(GUIFonts, GUIUtils):
         self._reset_registry()
 
         self.file_settings_input.reset()
+        self.feedback.reset()
 
         if dpg.does_item_exist("preview_checkbox"):
             dpg.set_value("preview_checkbox", False)
 
         if dpg.does_item_exist("rename_button"):
             dpg.configure_item("rename_button", label="Rename", enabled=True)
-
-        if dpg.does_item_exist("feedback_text"):
-            dpg.set_value("feedback_text", "")
 
         if (
             dpg.does_item_exist("input_folder_root_preview")
@@ -174,6 +181,16 @@ class GUI(GUIFonts, GUIUtils):
                     color=s.Colors.grey
                 )
 
+            same_folder_feedback: str = "I see you selected the input and output folder as the same folder. Is this correct?"
+            if (
+                self.registry.input_folder_root is not None and
+                self.registry.output_folder_root is not None and
+                self.registry.input_folder_root == self.registry.output_folder_root
+            ):
+                self.feedback.warning(same_folder_feedback)
+            elif self.feedback.current_feedback == same_folder_feedback:
+                self.feedback.reset()
+
             self.print_registry()
 
         except Exception as e:
@@ -186,28 +203,24 @@ class GUI(GUIFonts, GUIUtils):
         logger.debug(f"File selection changed: {user_data} -> {app_data}")
 
     def on_rename_clicked(self):
-        if dpg.does_item_exist("feedback_text"):
-            dpg.set_value("feedback_text", "")
-            dpg.configure_item("feedback_text", color=s.Colors.red)  # Reset to red for errors
+        self.feedback.reset()
 
         if not self.registry.input_folder_root:
-            dpg.set_value("feedback_text", "Error: Input folder not selected")
+            self.feedback.error("You need to select an input folder")
             return
 
         if not self.registry.output_folder_root:
-            dpg.set_value("feedback_text", "Error: Output folder not selected")
+            self.feedback.error("You need to select an output folder")
             return
 
         selected_files = [f for f, selected in self.registry.selected_files.items() if selected]
         if not selected_files:
-            dpg.set_value("feedback_text", "Error: No files selected for renaming")
+            self.feedback.error("No files are selected for renaming")
             return
 
         self.print_registry()
 
-        # Display success message in green
-        dpg.configure_item("feedback_text", color=s.Colors.green)  # Green color for success
-        dpg.set_value("feedback_text", f"Successfully prepared {len(selected_files)} files for renaming")
+        self.feedback.success(f"Successfully prepared {len(selected_files)} files for renaming")
 
         self.registry.input_folder_root = None
         self.registry.selected_files = {}
@@ -234,9 +247,7 @@ class GUI(GUIFonts, GUIUtils):
             self.add_space()
             self.file_settings_input.layout()
 
-            self.add_space()
-            dpg.add_separator()
-            self.add_space()
+            self.add_fancy_separator()
 
             self.h2(
                 "Choose where to rename the files and where to save",
@@ -245,63 +256,15 @@ class GUI(GUIFonts, GUIUtils):
             self.add_space()
 
             with dpg.group(horizontal=True):
-                with dpg.group(width=c.BOX_WIDTH, tag="from_group"):
-                    dpg.add_text("Input Location")
-                    comp.FileDialog(
-                        tag="input_folder_root",
-                        label="",
-                        registry=self.registry,
-                        callback=self.refresh
-                    )
-                    dpg.add_text(
-                        ">",
-                        tag="input_folder_root_preview",
-                        wrap=c.BOX_WIDTH,
-                        color=s.Colors.corn_blue
-                    )
-                    dpg.add_child_window(
-                        height=c.BOX_HEIGHT,
-                        width=c.BOX_WIDTH,
-                        tag="files_checkbox_group"
-                    )
+                self.input_folder.layout()
 
                 with dpg.group(width=50):
                     dpg.add_spacer(height=150)
                     dpg.add_text("  >>>  ")
 
-                with dpg.group(width=c.BOX_WIDTH):
-                    dpg.add_text("Output Location")
-                    comp.FileDialog(
-                        tag="output_folder_root",
-                        label="",
-                        registry=self.registry,
-                        callback=self.refresh
-                    )
-                    dpg.add_text(
-                        ">",
-                        tag="output_folder_root_preview",
-                        wrap=c.BOX_WIDTH,
-                        color=s.Colors.corn_blue
-                    )
-                    dpg.add_listbox(
-                        [],
-                        tag="to_listbox",
-                        width=c.BOX_WIDTH,
-                        num_items=c.BOX_HEIGHT // 22
-                    )
+                self.output_folder.layout()
 
-            dpg.add_checkbox(
-                label="Preview Update",
-                id="preview_checkbox",
-                callback=self.refresh
-            )
-
-            dpg.add_text(
-                "",
-                tag="feedback_text",
-                color=s.Colors.red,
-                wrap=c.MIN_WINDOW_WIDTH
-            )
+            self.feedback.layout()
 
             # Right-aligned buttons
             with dpg.group(horizontal=True):

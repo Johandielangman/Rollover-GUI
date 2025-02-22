@@ -117,3 +117,118 @@ class FileSettingsInput:
                 tag="suffix_input",
                 width=c.BOX_WIDTH * 0.5
             )
+
+
+class InputFolder:
+    def __init__(
+        self,
+        refresh_callback: Callable,
+        registry: 'Registry'
+    ) -> None:
+        self.refresh_callback: Callable = refresh_callback
+        self.registry: 'Registry' = registry
+
+    def refresh(self) -> None:
+        pass
+
+    def reset(self) -> None:
+        pass
+
+    def layout(self) -> None:
+        with dpg.group():
+            with dpg.group(width=c.BOX_WIDTH, tag="from_group"):
+                dpg.add_text("Input Location")
+                FileDialog(
+                    tag="input_folder_root",
+                    label="",
+                    registry=self.registry,
+                    callback=self.refresh_callback
+                )
+                dpg.add_text(
+                    ">",
+                    tag="input_folder_root_preview",
+                    wrap=c.BOX_WIDTH,
+                    color=s.Colors.corn_blue
+                )
+                dpg.add_child_window(
+                    height=c.BOX_HEIGHT,
+                    width=c.BOX_WIDTH,
+                    tag="files_checkbox_group"
+                )
+            dpg.add_checkbox(
+                label="Preview Update",
+                id="preview_checkbox",
+                callback=self.refresh_callback
+            )
+
+
+class OutputFolder:
+    def __init__(
+        self,
+        refresh_callback: Callable,
+        registry: 'Registry'
+    ) -> None:
+        self.refresh_callback: Callable = refresh_callback
+        self.registry: 'Registry' = registry
+
+    def refresh(self) -> None:
+        pass
+
+    def reset(self) -> None:
+        pass
+
+    def layout(self) -> None:
+        with dpg.group(width=c.BOX_WIDTH):
+            dpg.add_text("Output Location")
+            FileDialog(
+                tag="output_folder_root",
+                label="",
+                registry=self.registry,
+                callback=self.refresh_callback
+            )
+            dpg.add_text(
+                ">",
+                tag="output_folder_root_preview",
+                wrap=c.BOX_WIDTH,
+                color=s.Colors.corn_blue
+            )
+            dpg.add_listbox(
+                [],
+                tag="to_listbox",
+                width=c.BOX_WIDTH,
+                num_items=c.BOX_HEIGHT // 22
+            )
+
+
+class Feedback:
+    def __update(self, msg: str, color: tuple) -> None:
+        if dpg.does_item_exist("feedback_text"):
+            dpg.set_value("feedback_text", msg)
+            dpg.configure_item("feedback_text", color=color)
+
+    @property
+    def current_feedback(self) -> str:
+        return dpg.get_value("feedback_text")
+
+    def info(self, msg: str) -> None:
+        self.__update(msg, s.Colors.teal)
+
+    def success(self, msg: str) -> None:
+        self.__update(msg, s.Colors.green)
+
+    def error(self, msg: str) -> None:
+        self.__update(msg, s.Colors.red)
+
+    def warning(self, msg: str) -> None:
+        self.__update(msg, s.Colors.yellow)
+
+    def reset(self) -> None:
+        self.__update("", s.Colors.red)
+
+    def layout(self) -> None:
+        dpg.add_text(
+            "",
+            tag="feedback_text",
+            color=s.Colors.red,
+            wrap=c.MIN_WINDOW_WIDTH
+        )
