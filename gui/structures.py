@@ -2,8 +2,10 @@ from typing import (
     Optional,
     Dict
 )
-from pydantic import BaseModel
-from dataclasses import dataclass, field
+from dataclasses import (
+    dataclass,
+    field
+)
 
 
 # class Registry(BaseModel):

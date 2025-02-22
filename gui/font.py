@@ -1,9 +1,10 @@
 from typing import (
     Union
 )
-import utils
 from loguru import logger
 import dearpygui.dearpygui as dpg
+
+import utils
 
 logger.add(**utils.log_args("gui"))
 

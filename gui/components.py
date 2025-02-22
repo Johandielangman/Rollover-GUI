@@ -1,17 +1,18 @@
-from types import ModuleType
-import dearpygui.dearpygui as dpg
 import pathlib
 import os
 from typing import (
     Callable,
-    List,
     Optional,
     TYPE_CHECKING
 )
+
+import dearpygui.dearpygui as dpg
+from loguru import logger
+
 import gui.structures as s
 import constants as c
-from loguru import logger
 import utils
+
 if TYPE_CHECKING:
     from gui.gui import Registry
 

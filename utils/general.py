@@ -1,12 +1,13 @@
 
 import os
 import pathlib
+import datetime
 from typing import (
     Dict,
     Optional
 )
+
 import constants as c
-import datetime
 
 
 def get_today() -> str:

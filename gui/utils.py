@@ -1,11 +1,13 @@
-
-from loguru import logger
-import dearpygui.dearpygui as dpg
-import constants as c
-import utils
 from typing import (
     TYPE_CHECKING
 )
+
+from loguru import logger
+import dearpygui.dearpygui as dpg
+
+import constants as c
+import utils
+
 if TYPE_CHECKING:
     from gui.structures import Registry
 
