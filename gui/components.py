@@ -1,6 +1,7 @@
 from types import ModuleType
 import dearpygui.dearpygui as dpg
 import pathlib
+import os
 from typing import (
     Callable,
     List,
@@ -128,11 +129,85 @@ class InputFolder:
         self.refresh_callback: Callable = refresh_callback
         self.registry: 'Registry' = registry
 
+    @property
+    def preview_enabled(self) -> bool:
+        return dpg.get_value("preview_checkbox") if (
+            dpg.does_item_exist("preview_checkbox")
+        ) else False
+
+    def on_file_selected(self, sender, app_data, user_data):
+        self.registry.selected_files[user_data] = app_data
+        logger.debug(f"File selection changed: {user_data} -> {app_data}")
+
     def refresh(self) -> None:
-        pass
+        if dpg.does_item_exist("files_checkbox_group"):
+            dpg.delete_item("files_checkbox_group")
+
+        with dpg.child_window(
+            height=c.BOX_HEIGHT,
+            width=c.BOX_WIDTH,
+            tag="files_checkbox_group",
+            parent="from_group",
+            horizontal_scrollbar=True
+        ):
+            if self.registry.input_folder_root is not None:
+                input_path = pathlib.Path(self.registry.input_folder_root)
+                files = [item for item in input_path.iterdir() if item.is_file()]
+
+                files.sort(
+                    key=lambda x: (
+                        0 if
+                        x.suffix.lower() == '.xlsx'
+                        else 1, x.name
+                    )
+                )
+
+                for file in files:
+                    is_excel = file.suffix.lower() == '.xlsx'
+
+                    if file.name not in self.registry.selected_files:
+                        self.registry.selected_files[file.name] = is_excel
+
+                    preview_name = ""
+                    if (
+                        self.preview_enabled and
+                        self.registry.selected_files[file.name]
+                    ):
+                        name, ext = os.path.splitext(file.name)
+                        preview_name = f">> {name}s{ext}"
+
+                    with dpg.group(horizontal=True):
+                        dpg.add_checkbox(
+                            label=file.name,
+                            default_value=self.registry.selected_files[file.name],
+                            callback=self.on_file_selected,
+                            user_data=file.name,
+                        )
+                        dpg.add_text(
+                            default_value=preview_name,
+                            color=s.Colors.yellow,
+                        )
+
+        if (
+            dpg.does_item_exist("input_folder_root_preview") and
+            self.registry.input_folder_root is not None
+        ):
+            dpg.configure_item(
+                "input_folder_root_preview",
+                default_value=utils.format_path_display(self.registry.input_folder_root),
+                color=s.Colors.grey
+            )
 
     def reset(self) -> None:
-        pass
+        if dpg.does_item_exist("preview_checkbox"):
+            dpg.set_value("preview_checkbox", False)
+
+        if dpg.does_item_exist("input_folder_root_preview"):
+            dpg.configure_item(
+                "input_folder_root_preview",
+                default_value=">",
+                color=s.Colors.corn_blue
+            )
 
     def layout(self) -> None:
         with dpg.group():
@@ -172,10 +247,30 @@ class OutputFolder:
         self.registry: 'Registry' = registry
 
     def refresh(self) -> None:
-        pass
+        if dpg.does_item_exist("to_listbox"):
+            items = []
+            if self.registry.output_folder_root is not None:
+                output_path = pathlib.Path(self.registry.output_folder_root)
+                items = [item.name for item in output_path.iterdir() if item.is_file()]
+            dpg.configure_item("to_listbox", items=items if items else [])
+
+        if (
+            dpg.does_item_exist("output_folder_root_preview") and
+            self.registry.output_folder_root is not None
+        ):
+            dpg.configure_item(
+                "output_folder_root_preview",
+                default_value=utils.format_path_display(self.registry.output_folder_root),
+                color=s.Colors.grey
+            )
 
     def reset(self) -> None:
-        pass
+        if dpg.does_item_exist("output_folder_root_preview"):
+            dpg.configure_item(
+                "output_folder_root_preview",
+                default_value=">",
+                color=s.Colors.corn_blue
+            )
 
     def layout(self) -> None:
         with dpg.group(width=c.BOX_WIDTH):

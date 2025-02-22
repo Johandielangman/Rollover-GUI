@@ -64,32 +64,24 @@ class GUI(GUIFonts, GUIUtils):
 
         self.file_settings_input.reset()
         self.feedback.reset()
-
-        if dpg.does_item_exist("preview_checkbox"):
-            dpg.set_value("preview_checkbox", False)
+        self.input_folder.reset()
+        self.output_folder.reset()
 
         if dpg.does_item_exist("rename_button"):
             dpg.configure_item("rename_button", label="Rename", enabled=True)
 
-        if (
-            dpg.does_item_exist("input_folder_root_preview")
-        ):
-            dpg.configure_item(
-                "input_folder_root_preview",
-                default_value=">",
-                color=s.Colors.corn_blue
-            )
-
-        if (
-            dpg.does_item_exist("output_folder_root_preview")
-        ):
-            dpg.configure_item(
-                "output_folder_root_preview",
-                default_value=">",
-                color=s.Colors.corn_blue
-            )
-
         self.refresh()
+
+    def validate_folder_choices(self) -> None:
+        same_folder_feedback: str = "I see you selected the input and output folder as the same folder. Is this correct?"
+        if (
+            self.registry.input_folder_root is not None and
+            self.registry.output_folder_root is not None and
+            self.registry.input_folder_root == self.registry.output_folder_root
+        ):
+            self.feedback.warning(same_folder_feedback)
+        elif self.feedback.current_feedback == same_folder_feedback:
+            self.feedback.reset()
 
     def refresh(self):
         if self._is_refreshing:  # Prevent recursive calls
@@ -100,107 +92,16 @@ class GUI(GUIFonts, GUIUtils):
             logger.debug("Refreshing...")
 
             self.file_settings_input.refresh()
+            self.input_folder.refresh()
+            self.output_folder.refresh()
 
-            preview_enabled = dpg.get_value("preview_checkbox") if (
-                dpg.does_item_exist("preview_checkbox")
-            ) else False
-
-            # Clear existing checkboxes
-            if dpg.does_item_exist("files_checkbox_group"):
-                dpg.delete_item("files_checkbox_group")
-
-            with dpg.child_window(
-                height=c.BOX_HEIGHT,
-                width=c.BOX_WIDTH,
-                tag="files_checkbox_group",
-                parent="from_group",
-                horizontal_scrollbar=True
-            ):
-                if self.registry.input_folder_root is not None:
-                    input_path = pathlib.Path(self.registry.input_folder_root)
-                    files = [item for item in input_path.iterdir() if item.is_file()]
-
-                    files.sort(
-                        key=lambda x: (
-                            0 if
-                            x.suffix.lower() == '.xlsx'
-                            else 1, x.name
-                        )
-                    )
-
-                    for file in files:
-                        is_excel = file.suffix.lower() == '.xlsx'
-
-                        if file.name not in self.registry.selected_files:
-                            self.registry.selected_files[file.name] = is_excel
-
-                        preview_name = ""
-                        if (
-                            preview_enabled and
-                            self.registry.selected_files[file.name]
-                        ):
-                            name, ext = os.path.splitext(file.name)
-                            preview_name = f">> {name}s{ext}"
-
-                        with dpg.group(horizontal=True):
-                            dpg.add_checkbox(
-                                label=file.name,
-                                default_value=self.registry.selected_files[file.name],
-                                callback=self.on_file_selected,
-                                user_data=file.name,
-                            )
-                            dpg.add_text(
-                                default_value=preview_name,
-                                color=s.Colors.yellow,
-                            )
-
-            if dpg.does_item_exist("to_listbox"):
-                items = []
-                if self.registry.output_folder_root is not None:
-                    output_path = pathlib.Path(self.registry.output_folder_root)
-                    items = [item.name for item in output_path.iterdir() if item.is_file()]
-                dpg.configure_item("to_listbox", items=items if items else [])
-
-            if (
-                dpg.does_item_exist("input_folder_root_preview") and
-                self.registry.input_folder_root is not None
-            ):
-                dpg.configure_item(
-                    "input_folder_root_preview",
-                    default_value=utils.format_path_display(self.registry.input_folder_root),
-                    color=s.Colors.grey
-                )
-
-            if (
-                dpg.does_item_exist("output_folder_root_preview") and
-                self.registry.output_folder_root is not None
-            ):
-                dpg.configure_item(
-                    "output_folder_root_preview",
-                    default_value=utils.format_path_display(self.registry.output_folder_root),
-                    color=s.Colors.grey
-                )
-
-            same_folder_feedback: str = "I see you selected the input and output folder as the same folder. Is this correct?"
-            if (
-                self.registry.input_folder_root is not None and
-                self.registry.output_folder_root is not None and
-                self.registry.input_folder_root == self.registry.output_folder_root
-            ):
-                self.feedback.warning(same_folder_feedback)
-            elif self.feedback.current_feedback == same_folder_feedback:
-                self.feedback.reset()
+            self.validate_folder_choices()
 
             self.print_registry()
-
         except Exception as e:
             logger.error(f"Error in refresh: {e}")
         finally:
             self._is_refreshing = False
-
-    def on_file_selected(self, sender, app_data, user_data):
-        self.registry.selected_files[user_data] = app_data
-        logger.debug(f"File selection changed: {user_data} -> {app_data}")
 
     def on_rename_clicked(self):
         self.feedback.reset()
