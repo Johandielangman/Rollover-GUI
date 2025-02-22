@@ -8,7 +8,7 @@ import dearpygui.dearpygui as dpg
 logger.add(**utils.log_args("gui"))
 
 
-class Font:
+class GUIFonts:
     def font_setup(self) -> None:
         logger.debug("Setting up font")
         arial_path: str = utils.get_font_path("arial")

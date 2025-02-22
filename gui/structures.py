@@ -2,14 +2,14 @@ from typing import (
     Optional,
     Dict
 )
-from dataclasses import dataclass, field
+from pydantic import BaseModel
+from dataclasses import dataclass
 
 
-@dataclass
-class Registry:
+class Registry(BaseModel):
     input_folder_root: Optional[str] = None
     output_folder_root: Optional[str] = None
-    selected_files: Dict = field(default_factory=dict)
+    selected_files: Dict[str, str] = {}
 
     use_year: bool = False
     use_suffix: bool = False

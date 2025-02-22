@@ -13,7 +13,8 @@ from typing import (
 import dearpygui.dearpygui as dpg
 from loguru import logger
 
-from gui.font import Font
+from gui.utils import GUIUtils
+from gui.font import GUIFonts
 import gui.structures as s
 import gui.components as comp
 import constants as c
@@ -22,7 +23,7 @@ import utils
 logger.add(**utils.log_args("gui_app"))
 
 
-class GUI(Font):
+class GUI(GUIFonts, GUIUtils):
     def __init__(self):
         logger.debug("Starting a new GUI...")
         dpg.create_context()
@@ -30,22 +31,32 @@ class GUI(Font):
         self.registry: s.Registry = s.Registry()
         self._is_refreshing = False
 
-        self.font_setup()
+        self.__init_components()
+
         self.layout()
         self.reset()
         self.run()
 
-    def reset(self):
-        logger.debug("Resetting...")
+    def __init_components(self) -> None:
+        self.file_settings_input = comp.FileSettingsInput(
+            refresh_callback=self.refresh,
+            registry=self.registry
+        )
+        self.font_setup()
+
+    def _reset_registry(self) -> None:
         self.registry.input_folder_root = None
         self.registry.output_folder_root = None
         self.registry.selected_files = {}
+
+    def reset(self):
+        logger.debug("Resetting...")
+        self._reset_registry()
+
+        self.file_settings_input.reset()
+
         if dpg.does_item_exist("preview_checkbox"):
             dpg.set_value("preview_checkbox", False)
-        if dpg.does_item_exist("use_year_checkbox"):
-            dpg.set_value("use_year_checkbox", True)
-        if dpg.does_item_exist("use_suffix_checkbox"):
-            dpg.set_value("use_suffix_checkbox", False)
 
         if dpg.does_item_exist("rename_button"):
             dpg.configure_item("rename_button", label="Rename", enabled=True)
@@ -71,33 +82,7 @@ class GUI(Font):
                 color=s.Colors.corn_blue
             )
 
-        if dpg.does_item_exist("year_input"):
-            dpg.set_value("year_input", str(utils.get_current_year()))
-        if dpg.does_item_exist("suffix_input"):
-            dpg.set_value("suffix_input", "")
         self.refresh()
-
-    def get_checkbox_states(self) -> Tuple[bool, bool, bool]:
-        use_year_enabled = dpg.get_value("use_year_checkbox") if (
-            dpg.does_item_exist("use_year_checkbox")
-        ) else False
-        use_suffix_enabled = dpg.get_value("use_suffix_checkbox") if (
-            dpg.does_item_exist("use_suffix_checkbox")
-        ) else False
-        preview_enabled = dpg.get_value("preview_checkbox") if (
-            dpg.does_item_exist("preview_checkbox")
-        ) else False
-        return (
-            use_year_enabled,
-            use_suffix_enabled,
-            preview_enabled
-        )
-
-    def get_file_update_selections(self):
-        if dpg.does_item_exist("year_input"):
-            self.registry.selected_year = dpg.get_value("year_input")
-        if dpg.does_item_exist("suffix_input"):
-            self.registry.selected_suffix = dpg.get_value("suffix_input")
 
     def refresh(self):
         if self._is_refreshing:  # Prevent recursive calls
@@ -107,12 +92,11 @@ class GUI(Font):
             self._is_refreshing = True
             logger.debug("Refreshing...")
 
-            (
-                self.registry.use_year,
-                self.registry.use_suffix,
-                preview_enabled
-            ) = self.get_checkbox_states()
-            self.get_file_update_selections()
+            self.file_settings_input.refresh()
+
+            preview_enabled = dpg.get_value("preview_checkbox") if (
+                dpg.does_item_exist("preview_checkbox")
+            ) else False
 
             # Clear existing checkboxes
             if dpg.does_item_exist("files_checkbox_group"):
@@ -201,16 +185,6 @@ class GUI(Font):
         self.registry.selected_files[user_data] = app_data
         logger.debug(f"File selection changed: {user_data} -> {app_data}")
 
-    def print_registry(self, level: str = "info"):
-        log_func = getattr(logger, level, logger.info)
-        log_func(f"Files selected for renaming: {self.registry.selected_files}")
-        log_func(f"Input folder: {self.registry.input_folder_root}")
-        log_func(f"Output folder: {self.registry.output_folder_root}")
-        log_func(f"Year Enabled: {self.registry.use_year}")
-        log_func(f"Suffix Enabled: {self.registry.use_suffix}")
-        log_func(f"Suffix Selected: {self.registry.selected_suffix}")
-        log_func(f"Year Selected: {self.registry.selected_year}")
-
     def on_rename_clicked(self):
         if dpg.does_item_exist("feedback_text"):
             dpg.set_value("feedback_text", "")
@@ -241,9 +215,6 @@ class GUI(Font):
             dpg.configure_item("rename_button", label="Success!", enabled=False)
         self.refresh()
 
-    def add_space(self):
-        dpg.add_spacer(height=c.SPACER_HEIGHT)
-
     def layout(self) -> None:
         with dpg.window(
             label=c.APP_NAME,
@@ -254,40 +225,14 @@ class GUI(Font):
 
             self.h1(c.APP_NAME, color=s.Colors.nice_red)
 
-            self.add_space()
-            dpg.add_separator()
-            self.add_space()
+            self.add_fancy_separator()
 
             self.h2(
                 "Choose how to rename the files",
                 color=s.Colors.nice_blue
             )
             self.add_space()
-
-            with dpg.group(horizontal=True):
-                dpg.add_checkbox(
-                    id="use_year_checkbox",
-                    callback=self.refresh,
-                    default_value=True
-                )
-                dpg.add_text("Year to replace with")
-                dpg.add_combo(
-                    utils.get_year_range(),
-                    default_value=str(utils.get_current_year()),
-                    width=80,
-                    tag="year_input"
-                )
-            with dpg.group(horizontal=True):
-                dpg.add_checkbox(
-                    id="use_suffix_checkbox",
-                    callback=self.refresh,
-                    default_value=False
-                )
-                dpg.add_text("Suffix to add on the file")
-                dpg.add_input_text(
-                    tag="suffix_input",
-                    width=c.BOX_WIDTH * 0.5
-                )
+            self.file_settings_input.layout()
 
             self.add_space()
             dpg.add_separator()
