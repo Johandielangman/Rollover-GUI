@@ -112,9 +112,13 @@ class GUI(GUIFonts, GUIUtils):
         utils.Rename(
             registry=self.registry
         )
+        if not self.registry.rename_mapping:
+            self.feedback.error("Nothing to rename!")
+            return
+
         utils.apply_rename_to_registry(self.registry)
 
-        self.feedback.success(f"Successfully renamed {len(self.registry.rename_mapping)}")
+        self.feedback.success(f"Successfully renamed {len(self.registry.rename_mapping)} file(s). Please reset to rename more files.")
 
         self.registry.input_folder_root = None
         self.registry.selected_files = {}
