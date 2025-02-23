@@ -48,7 +48,7 @@ def get_font_path(font_name: str):
 class GUIFonts:
     def font_setup(self) -> None:
         logger.debug("Setting up font")
-        arial_path: str = utils.get_font_path("arial")
+        arial_path: str = get_font_path("arial")
         with dpg.font_registry():
             try:
                 self.default_font: Union[int, str] = dpg.add_font(arial_path, size=18)

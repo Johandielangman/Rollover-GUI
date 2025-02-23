@@ -1,5 +1,6 @@
 compile:
 	rm -rf ./build && \
+	rm -rf ./dist && \
 	pyinstaller --onefile --noconsole main.py --name=Rollover_v1 --icon=s_a_logo.ico && \
 	cp -r ./docs/* ./dist/ && \
 	mkdir -p ./dist/demo && \
