@@ -1,3 +1,15 @@
+# ~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~
+#      /\_/\
+#     ( o.o )
+#      > ^ <
+#
+# Author: Johan Hanekom
+# Date: February 2025
+#
+# ~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~
+
+# =========== // STANDARD IMPORTS // ===========
+
 import dearpygui.dearpygui as dpg
 from loguru import logger
 

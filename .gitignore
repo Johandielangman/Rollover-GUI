@@ -4,3 +4,8 @@ tests/input/*
 tests/output/*
 test_data/out/*
 !.gitkeep
+build/*
+dist/*
+publish/*
+!publish/.gitkeep
+*.spec

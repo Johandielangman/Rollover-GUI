@@ -1,5 +1,7 @@
 dearpygui==2.0.0
 loguru==0.7.3
+Spire.Doc==13.1.0
 # pydantic==2.10.6
 psutil
 pytest
+pyinstaller
